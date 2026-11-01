@@ -349,15 +349,36 @@ TOOLS = {
 # ----------------------------------------------------------------------
 # Text to speech (one dedicated thread, so pyttsx3 is used safely)
 # ----------------------------------------------------------------------
+# def tts_worker():
+#     try:
+#         import pythoncom  # comes with pywin32, needed for SAPI in a thread
+#         pythoncom.CoInitialize()
+#     except ImportError:
+#         pass
+
+#     engine = pyttsx3.init()
+#     engine.setProperty("rate", 160)
+#     while True:
+#         text = tts_queue.get()
+#         if text is None:
+#             tts_queue.task_done()
+#             break
+#         speaking.set()
+#         try:
+#             engine.say(text)
+#             engine.runAndWait()
+#         finally:
+#             last_speech_end[0] = time.time()
+#             speaking.clear()
+#             tts_queue.task_done()
+
 def tts_worker():
     try:
-        import pythoncom  # comes with pywin32, needed for SAPI in a thread
+        import pythoncom
         pythoncom.CoInitialize()
     except ImportError:
-        pass
+        print("pywin32 not installed, speech may not work")
 
-    engine = pyttsx3.init()
-    engine.setProperty("rate", 160)
     while True:
         text = tts_queue.get()
         if text is None:
@@ -365,8 +386,14 @@ def tts_worker():
             break
         speaking.set()
         try:
+            engine = pyttsx3.init()
+            engine.setProperty("rate", 160)
             engine.say(text)
             engine.runAndWait()
+            engine.stop()
+            del engine
+        except Exception as e:
+            print(f"Speech error: {e}")
         finally:
             last_speech_end[0] = time.time()
             speaking.clear()
